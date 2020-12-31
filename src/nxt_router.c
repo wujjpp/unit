@@ -5169,6 +5169,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req->content_length_field = NXT_UNIT_NONE_FIELD;
     req->content_type_field   = NXT_UNIT_NONE_FIELD;
     req->cookie_field         = NXT_UNIT_NONE_FIELD;
+    req->authorization_field  = NXT_UNIT_NONE_FIELD;
 
     dst_field = req->fields;
 
@@ -5193,6 +5194,9 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
         } else if (field == r->cookie) {
             req->cookie_field = dst_field - req->fields;
+
+        } else if (field == r->authorization) {
+            req->authorization_field = dst_field - req->fields;
         }
 
         nxt_debug(task, "add field 0x%04Xd, %d, %d, %p : %d %p",
@@ -5369,7 +5373,7 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_bool_t               ack;
     nxt_process_t            *process;
     nxt_free_map_t           *m;
-    nxt_port_mmap_header_t   *hdr;
+    nxt_port_mmap_handler_t  *mmap_handler;
 
     nxt_debug(task, "oosm in %PI", msg->port_msg.pid);
 
@@ -5390,8 +5394,13 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_thread_mutex_lock(&process->incoming.mutex);
 
     for (i = 0; i < process->incoming.size; i++) {
-        hdr = process->incoming.elts[i].mmap_handler->hdr;
-        m = hdr->free_map;
+        mmap_handler = process->incoming.elts[i].mmap_handler;
+
+        if (nxt_slow_path(mmap_handler == NULL)) {
+            continue;
+        }
+
+        m = mmap_handler->hdr->free_map;
 
         for (mi = 0; mi < MAX_FREE_IDX; mi++) {
             if (m[mi] != 0) {

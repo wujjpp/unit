@@ -3,9 +3,10 @@
 include ../../version
 include ../shasum.mak
 
+DEFAULT_VERSION := $(NXT_VERSION)
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(NXT_VERSION)
+VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 CODENAME := buster
 
@@ -55,13 +56,17 @@ build-%: Dockerfile.%
 
 tag-%: build-%
 	docker tag unit:$(VERSION)-$* nginx/unit:$(VERSION)-$*
+	docker tag unit:$(VERSION)-$* public.ecr.aws/nginx/unit:$(VERSION)-$*
 
 push-%: tag-%
 	docker push nginx/unit:$(VERSION)-$*
+	docker push public.ecr.aws/nginx/unit:$(VERSION)-$*
 
 latest:
 	docker tag nginx/unit:$(VERSION)-full nginx/unit:latest
+	docker tag nginx/unit:$(VERSION)-full public.ecr.aws/nginx/unit:latest
 	docker push nginx/unit:latest
+	docker push public.ecr.aws/nginx/unit:latest
 
 refresh-base:
 	docker pull $(shell head -n 1 Dockerfile.tmpl | cut -d' ' -f 2)
