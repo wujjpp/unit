@@ -2,9 +2,10 @@
 
 include ../../version
 
+DEFAULT_VERSION := $(NXT_VERSION)
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(NXT_VERSION)
+VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
 ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
@@ -149,6 +150,8 @@ CONFIGURE_ARGS=\
 	--pid=/var/run/unit/unit.pid \
 	--log=/var/log/unit/unit.log \
 	--tmp=/var/tmp \
+	--user=unit \
+	--group=unit \
 	--tests \
 	--openssl
 
@@ -274,7 +277,7 @@ test: unit modules
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest ) ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 test-debug: unit modules
@@ -285,7 +288,7 @@ test-debug: unit modules
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest ) ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 clean:

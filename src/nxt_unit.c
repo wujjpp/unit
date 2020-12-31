@@ -3606,7 +3606,10 @@ nxt_unit_wait_shm_ack(nxt_unit_ctx_t *ctx)
             return NXT_UNIT_ERROR;
         }
 
-        res = nxt_unit_ctx_port_recv(ctx, ctx_impl->read_port, rbuf);
+        do {
+            res = nxt_unit_ctx_port_recv(ctx, ctx_impl->read_port, rbuf);
+        } while (res == NXT_UNIT_AGAIN);
+
         if (res == NXT_UNIT_ERROR) {
             nxt_unit_read_buf_release(ctx, rbuf);
 
@@ -5013,7 +5016,6 @@ nxt_unit_process_port_msg_impl(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     int                  rc;
     nxt_unit_impl_t      *lib;
     nxt_unit_read_buf_t  *rbuf;
-    nxt_unit_ctx_impl_t  *ctx_impl;
 
     rbuf = nxt_unit_read_buf_get(ctx);
     if (nxt_slow_path(rbuf == NULL)) {
@@ -5021,9 +5023,6 @@ nxt_unit_process_port_msg_impl(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     }
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
-    ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
-
-retry:
 
     if (port == lib->shared_port) {
         rc = nxt_unit_shared_port_recv(ctx, port, rbuf);
@@ -5048,15 +5047,6 @@ retry:
     }
 
     nxt_unit_process_ready_req(ctx);
-
-    if (ctx_impl->online) {
-        rbuf = nxt_unit_read_buf_get(ctx);
-        if (nxt_slow_path(rbuf == NULL)) {
-            return NXT_UNIT_ERROR;
-        }
-
-        goto retry;
-    }
 
     return rc;
 }
@@ -6092,7 +6082,10 @@ static int
 nxt_unit_shared_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
     nxt_unit_read_buf_t *rbuf)
 {
-    int  res;
+    int                   res;
+    nxt_unit_port_impl_t  *port_impl;
+
+    port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
 
 retry:
 
@@ -6105,6 +6098,8 @@ retry:
         }
 
         if (nxt_unit_is_read_queue(rbuf)) {
+            nxt_app_queue_notification_received(port_impl->queue);
+
             nxt_unit_debug(ctx, "port{%d,%d} recv %d read_queue",
                            (int) port->id.pid, (int) port->id.id, (int) rbuf->size);
 
