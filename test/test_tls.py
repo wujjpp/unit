@@ -4,6 +4,7 @@ import ssl
 import subprocess
 
 import pytest
+
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -22,7 +23,7 @@ class TestTLS(TestApplicationTLS):
         assert 'success' in self.conf(
             {
                 "pass": "applications/" + application,
-                "tls": {"certificate": cert}
+                "tls": {"certificate": cert},
             },
             'listeners/*:' + str(port),
         )
@@ -199,7 +200,7 @@ class TestTLS(TestApplicationTLS):
                 self.sec_epoch()
                 - self.openssl_date_to_sec_epoch(cert['validity']['since'])
             )
-            < 5
+            < 60
         ), 'certificate validity since'
         assert (
             self.openssl_date_to_sec_epoch(cert['validity']['until'])

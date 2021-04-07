@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
@@ -27,7 +29,10 @@ class TestStatic(TestApplicationProto):
         )
 
     def teardown_method(self):
-        os.chmod(option.temp_dir + '/assets/403', 0o777)
+        try:
+            os.chmod(option.temp_dir + '/assets/403', 0o777)
+        except FileNotFoundError:
+            pass
 
     def action_update(self, conf):
         assert 'success' in self.conf(conf, 'routes/0/action')
@@ -77,10 +82,7 @@ class TestStatic(TestApplicationProto):
 
     def test_fallback_share(self, temp_dir):
         self.action_update(
-            {
-                "share": "/blah",
-                "fallback": {"share": temp_dir + "/assets"},
-            }
+            {"share": "/blah", "fallback": {"share": temp_dir + "/assets"},}
         )
 
         resp = self.get()
@@ -116,6 +118,7 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'fallback proxy status'
         assert resp['body'] == '', 'fallback proxy'
 
+    @pytest.mark.skip('not yet')
     def test_fallback_proxy_loop(self, skip_alert):
         skip_alert(
             r'open.*/blah/index.html.*failed',

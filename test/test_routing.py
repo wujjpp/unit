@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
@@ -229,15 +230,21 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/ABc')['status'] == 404
 
     def test_routes_empty_regex(self):
-        self.route_match({"uri":"~"})
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
+        self.route_match({"uri": "~"})
         assert self.get(url='/')['status'] == 200, 'empty regexp'
         assert self.get(url='/anything')['status'] == 200, '/anything'
 
-        self.route_match({"uri":"!~"})
+        self.route_match({"uri": "!~"})
         assert self.get(url='/')['status'] == 404, 'empty regexp 2'
         assert self.get(url='/nothing')['status'] == 404, '/nothing'
 
     def test_routes_bad_regex(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         assert 'error' in self.route(
             {"match": {"uri": "~/bl[ah"}, "action": {"return": 200}}
         ), 'bad regex'
@@ -255,6 +262,9 @@ class TestRouting(TestApplicationProto):
             assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
 
     def test_routes_match_regex_case_sensitive(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         self.route_match({"uri": "~/bl[ah]"})
 
         assert self.get(url='/rlah')['status'] == 404, '/rlah'
@@ -263,6 +273,9 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/BLAH')['status'] == 404, '/BLAH'
 
     def test_routes_match_regex_negative_case_sensitive(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         self.route_match({"uri": "!~/bl[ah]"})
 
         assert self.get(url='/rlah')['status'] == 200, '/rlah'
@@ -324,8 +337,7 @@ class TestRouting(TestApplicationProto):
                         "type": "python",
                         "processes": {"spare": 0},
                         "path": option.test_dir + '/python/empty',
-                        "working_directory": option.test_dir
-                        + '/python/empty',
+                        "working_directory": option.test_dir + '/python/empty',
                         "module": "wsgi",
                     }
                 },
@@ -483,8 +495,7 @@ class TestRouting(TestApplicationProto):
             'routes/0/action',
         ), 'proxy pass'
         assert 'error' in self.conf(
-            {"share": temp_dir, "pass": "applications/app"},
-            'routes/0/action',
+            {"share": temp_dir, "pass": "applications/app"}, 'routes/0/action',
         ), 'share pass'
 
     def test_routes_rules_two(self):
@@ -1350,10 +1361,7 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/?var2=val2')['status'] == 404, 'arr 7'
         assert self.get(url='/?var3=foo')['status'] == 200, 'arr 8'
 
-    def test_routes_match_arguments_invalid(self, skip_alert):
-        # TODO remove it after controller fixed
-        skip_alert(r'failed to apply new conf')
-
+    def test_routes_match_arguments_invalid(self):
         self.route_match_invalid({"arguments": ["var"]})
         self.route_match_invalid({"arguments": [{"var1": {}}]})
         self.route_match_invalid({"arguments": {"": "bar"}})
